@@ -5,18 +5,10 @@ const int BLOCK_WIDTH = 16;
 const int BLOCK_HEIGHT = 16;
 
 const int BLOCK_COUNT_HORIZONTAL = 64;
-const int BLOCK_COUNT_VERTICAL = 48;
+const int BLOCK_COUNT_VERTICAL = 64;
 
 const int SCREEN_WIDTH = (BLOCK_WIDTH * BLOCK_COUNT_HORIZONTAL);
 const int SCREEN_HEIGHT = (BLOCK_HEIGHT * BLOCK_COUNT_VERTICAL);
-
-// NOTE: See difference in declaring and accessing 2d array.
-int[BLOCK_COUNT_HORIZONTAL][BLOCK_COUNT_VERTICAL] grid;
-
-double prev_time;
-double curr_time;
-int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
-int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
 
 enum MovementDirection
 {
@@ -26,6 +18,23 @@ enum MovementDirection
 	MOVING_LEFT
 }
 
+enum BlockType
+{
+	NO_BLOCK,
+	PLAYER_HEAD_BLOCK,
+	PLAYER_BODY_BLOCK,
+	FOOD_BLOCK,
+	BORDER_BLOCK
+}
+
+// NOTE: See difference in declaring and accessing 2d array.
+BlockType[BLOCK_COUNT_HORIZONTAL][BLOCK_COUNT_VERTICAL] grid;
+
+double prev_time;
+double curr_time;
+int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
+int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
+
 MovementDirection direction = MOVING_UP;
   
 fn int main()
@@ -33,8 +42,20 @@ fn int main()
     rl::initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
     rl::setTargetFPS(60);
 
-	grid[player_y_index][player_x_index] = 1;
+	grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
 	prev_time = rl::getTime();
+
+	for(int i = 0; i < BLOCK_COUNT_VERTICAL; i++)
+	{
+		grid[i][0] = BORDER_BLOCK;
+		grid[i][(BLOCK_COUNT_HORIZONTAL - 1)] = BORDER_BLOCK;
+	}
+
+	for(int i = 0; i < BLOCK_COUNT_HORIZONTAL; i++)
+	{
+		grid[0][i] = BORDER_BLOCK;
+		grid[(BLOCK_COUNT_VERTICAL - 1)][i] = BORDER_BLOCK;
+	}
 
     while (!rl::windowShouldClose())
     {
@@ -59,10 +80,10 @@ fn int main()
 		}
 
 		curr_time = rl::getTime();
-		if((curr_time - prev_time) >= 0.3)
+		if((curr_time - prev_time) >= 0.2)
 		{
 			prev_time = curr_time;
-			grid[player_y_index][player_x_index] = 0;
+			grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
 
 			// TODO: Consider creating a state machine to handle different directions.
 			// TODO: Also check if index is valid.
@@ -80,7 +101,12 @@ fn int main()
 				
 			}
 
-			grid[player_y_index][player_x_index] = 1;
+			if(grid[player_y_index][player_x_index] == BlockType.BORDER_BLOCK)
+			{
+				break;
+			}
+
+			grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
 		}
 
 
@@ -92,12 +118,19 @@ fn int main()
 			{
 				for(int x = 0; x < BLOCK_COUNT_HORIZONTAL; x++)
 				{
-					if(grid[y][x] == 1)
+					int posX = x * BLOCK_WIDTH;
+					int posY = y * BLOCK_HEIGHT;
+
+					if(grid[y][x] == BlockType.PLAYER_HEAD_BLOCK)
 					{
 						// Draw Player
-						int posX = x * BLOCK_WIDTH;
-						int posY = y * BLOCK_HEIGHT;
 						rl::drawRectangle(posX, posY, BLOCK_WIDTH, BLOCK_HEIGHT, rl::GREEN); // Head of snake
+					}
+
+					if(grid[y][x] == BlockType.BORDER_BLOCK)
+					{
+						// Draw Border
+						rl::drawRectangle(posX, posY, BLOCK_WIDTH, BLOCK_HEIGHT, rl::WHITE); 
 					}
 				}
 			}
