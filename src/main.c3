@@ -17,8 +17,17 @@ double prev_time;
 double curr_time;
 int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
 int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
-bool moving_horizontally = false;
 
+enum MovementDirection
+{
+	MOVING_UP,
+	MOVING_DOWN,
+	MOVING_RIGHT,
+	MOVING_LEFT
+}
+
+MovementDirection direction = MOVING_UP;
+  
 fn int main()
 {
     rl::initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
@@ -29,6 +38,26 @@ fn int main()
 
     while (!rl::windowShouldClose())
     {
+		if(rl::isKeyPressed(rl::KEY_RIGHT))
+		{
+			direction = MOVING_RIGHT;
+		}
+
+		if(rl::isKeyPressed(rl::KEY_LEFT))
+		{
+			direction = MOVING_LEFT;
+		}
+
+		if(rl::isKeyPressed(rl::KEY_UP))
+		{
+			direction = MOVING_UP;
+		}
+
+		if(rl::isKeyPressed(rl::KEY_DOWN))
+		{
+			direction = MOVING_DOWN;
+		}
+
 		curr_time = rl::getTime();
 		if((curr_time - prev_time) >= 0.3)
 		{
@@ -37,11 +66,21 @@ fn int main()
 
 			// TODO: Consider creating a state machine to handle different directions.
 			// TODO: Also check if index is valid.
-			if(!moving_horizontally)
+			switch (direction)
 			{
+			case MOVING_UP:
+				player_y_index--;
+			case MOVING_DOWN:
 				player_y_index++;
-				grid[player_y_index][player_x_index] = 1;
+			case MOVING_RIGHT:
+				player_x_index++;
+			case MOVING_LEFT:
+				player_x_index--;
+			default:
+				
 			}
+
+			grid[player_y_index][player_x_index] = 1;
 		}
 
 
