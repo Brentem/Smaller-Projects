@@ -1,5 +1,6 @@
 module snake;
 import raylib5::rl;
+import std::math::random;
 
 const int BLOCK_WIDTH = 16;
 const int BLOCK_HEIGHT = 16;
@@ -35,8 +36,27 @@ double curr_time;
 int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
 int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
 
+int score = 0;
+bool score_changed = false;
 MovementDirection direction = MOVING_UP;
-  
+
+fn void set_food_block()
+{
+	bool success = false;
+
+	while(!success)
+	{
+		int x = rand_in_range(0, (BLOCK_COUNT_HORIZONTAL - 1));
+		int y = rand_in_range(0, (BLOCK_COUNT_VERTICAL - 1));
+
+		if(grid[y][x] == BlockType.NO_BLOCK)
+		{
+			grid[y][x] = BlockType.FOOD_BLOCK;
+			success = true;
+		}
+	}
+}
+
 fn int main()
 {
     rl::initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
@@ -57,8 +77,16 @@ fn int main()
 		grid[(BLOCK_COUNT_VERTICAL - 1)][i] = BORDER_BLOCK;
 	}
 
+	set_food_block();
+
     while (!rl::windowShouldClose())
     {
+		if(score_changed)
+		{
+			score_changed = false;
+			set_food_block();
+		}
+
 		if(rl::isKeyPressed(rl::KEY_RIGHT))
 		{
 			direction = MOVING_RIGHT;
@@ -103,7 +131,14 @@ fn int main()
 
 			if(grid[player_y_index][player_x_index] == BlockType.BORDER_BLOCK)
 			{
-				break;
+				break; // Exit game
+			}
+
+			if(grid[player_y_index][player_x_index] == BlockType.FOOD_BLOCK)
+			{
+				score++;
+				grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
+				score_changed = true;
 			}
 
 			grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
@@ -120,6 +155,12 @@ fn int main()
 				{
 					int posX = x * BLOCK_WIDTH;
 					int posY = y * BLOCK_HEIGHT;
+
+					if(grid[y][x] == BlockType.FOOD_BLOCK)
+					{
+						// Draw Food
+						rl::drawRectangle(posX, posY, BLOCK_WIDTH, BLOCK_HEIGHT, rl::RED);
+					}
 
 					if(grid[y][x] == BlockType.PLAYER_HEAD_BLOCK)
 					{
