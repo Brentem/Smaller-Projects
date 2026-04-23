@@ -11,6 +11,13 @@ const int BLOCK_COUNT_VERTICAL = 64;
 const int SCREEN_WIDTH = (BLOCK_WIDTH * BLOCK_COUNT_HORIZONTAL);
 const int SCREEN_HEIGHT = (BLOCK_HEIGHT * BLOCK_COUNT_VERTICAL);
 
+enum InputEvent
+{
+	NO_INPUT_EVENT,
+	INPUT_EVENT_KEY_RIGHT,
+	INPUT_EVENT_KEY_LEFT
+}
+
 enum MovementDirection
 {
 	MOVING_UP,
@@ -39,25 +46,9 @@ int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
 int score = 0;
 bool score_changed = false;
 MovementDirection direction = MOVING_UP;
+bool quit_game = false;
 
-fn void set_food_block()
-{
-	bool success = false;
-
-	while(!success)
-	{
-		int x = rand_in_range(0, (BLOCK_COUNT_HORIZONTAL - 1));
-		int y = rand_in_range(0, (BLOCK_COUNT_VERTICAL - 1));
-
-		if(grid[y][x] == BlockType.NO_BLOCK)
-		{
-			grid[y][x] = BlockType.FOOD_BLOCK;
-			success = true;
-		}
-	}
-}
-
-fn int main()
+fn void initialize()
 {
     rl::initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
     rl::setTargetFPS(60);
@@ -78,72 +69,129 @@ fn int main()
 	}
 
 	set_food_block();
+}
 
-    while (!rl::windowShouldClose())
+fn void set_food_block()
+{
+	bool success = false;
+
+	while(!success)
+	{
+		int x = rand_in_range(0, (BLOCK_COUNT_HORIZONTAL - 1));
+		int y = rand_in_range(0, (BLOCK_COUNT_VERTICAL - 1));
+
+		if(grid[y][x] == BlockType.NO_BLOCK)
+		{
+			grid[y][x] = BlockType.FOOD_BLOCK;
+			success = true;
+		}
+	}
+}
+
+fn InputEvent handle_input()
+{
+	InputEvent event = InputEvent.NO_INPUT_EVENT;
+
+	if(rl::isKeyPressed(rl::KEY_RIGHT))
+	{
+		event = InputEvent.INPUT_EVENT_KEY_RIGHT;
+	}
+
+	if(rl::isKeyPressed(rl::KEY_LEFT))
+	{
+		event = InputEvent.INPUT_EVENT_KEY_LEFT;
+	}
+
+	return event;
+}
+
+// Moving Up: Left Key --> Moving Left ; Right Key --> Moving Right
+// Moving Down: Left Key --> Moving Right ; Right Key --> Moving Left
+// Moving Right: Left Key --> Moving Up ; Right Key --> Moving Down
+// Moving Left: Left Key --> Moving Down ; Right Key --> Moving Up
+fn void change_movement(InputEvent event)
+{
+	MovementDirection newDirection = direction;
+
+	// Moving Up
+	newDirection = ((direction == MOVING_UP) && (event == INPUT_EVENT_KEY_LEFT)) ? MOVING_LEFT : newDirection;
+	newDirection = ((direction == MOVING_UP) && (event == INPUT_EVENT_KEY_RIGHT)) ? MOVING_RIGHT : newDirection;
+
+	// Moving Down
+	newDirection = ((direction == MOVING_DOWN) && (event == INPUT_EVENT_KEY_LEFT)) ? MOVING_RIGHT : newDirection;
+	newDirection = ((direction == MOVING_DOWN) && (event == INPUT_EVENT_KEY_RIGHT)) ? MOVING_LEFT : newDirection;
+
+	// Moving Right
+	newDirection = ((direction == MOVING_RIGHT) && (event == INPUT_EVENT_KEY_LEFT)) ? MOVING_UP : newDirection;
+	newDirection = ((direction == MOVING_RIGHT) && (event == INPUT_EVENT_KEY_RIGHT)) ? MOVING_DOWN : newDirection;
+
+	// Moving Left
+	newDirection = ((direction == MOVING_LEFT) && (event == INPUT_EVENT_KEY_LEFT)) ? MOVING_DOWN : newDirection;
+	newDirection = ((direction == MOVING_LEFT) && (event == INPUT_EVENT_KEY_RIGHT)) ? MOVING_UP : newDirection;
+
+	direction = newDirection;
+}
+
+fn void apply_movement()
+{
+	curr_time = rl::getTime();
+	if((curr_time - prev_time) >= 0.2)
+	{
+		prev_time = curr_time;
+		grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
+
+		// TODO: Consider creating a state machine to handle different directions.
+		// TODO: Also check if index is valid.
+		// NOTE: C3 uses implicit break for switch statements.
+		switch(direction)
+		{
+		case MOVING_UP:
+			player_y_index--;
+		case MOVING_DOWN:
+			player_y_index++;
+		case MOVING_RIGHT:
+			player_x_index++;
+		case MOVING_LEFT:
+			player_x_index--;
+		default:
+			// TODO: Error handling?
+		}
+
+		if(grid[player_y_index][player_x_index] == BlockType.BORDER_BLOCK)
+		{
+			quit_game = true;
+		}
+
+		if(grid[player_y_index][player_x_index] == BlockType.FOOD_BLOCK)
+		{
+			score++;
+			grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
+			score_changed = true;
+		}
+
+		grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
+	}
+}
+
+fn int main()
+{
+	initialize();
+
+    while (!quit_game)
     {
+		quit_game = rl::windowShouldClose();
+
 		if(score_changed)
 		{
 			score_changed = false;
 			set_food_block();
 		}
 
-		if(rl::isKeyPressed(rl::KEY_RIGHT))
-		{
-			direction = MOVING_RIGHT;
-		}
+		InputEvent event = handle_input();
 
-		if(rl::isKeyPressed(rl::KEY_LEFT))
-		{
-			direction = MOVING_LEFT;
-		}
+		change_movement(event);
 
-		if(rl::isKeyPressed(rl::KEY_UP))
-		{
-			direction = MOVING_UP;
-		}
-
-		if(rl::isKeyPressed(rl::KEY_DOWN))
-		{
-			direction = MOVING_DOWN;
-		}
-
-		curr_time = rl::getTime();
-		if((curr_time - prev_time) >= 0.2)
-		{
-			prev_time = curr_time;
-			grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
-
-			// TODO: Consider creating a state machine to handle different directions.
-			// TODO: Also check if index is valid.
-			switch (direction)
-			{
-			case MOVING_UP:
-				player_y_index--;
-			case MOVING_DOWN:
-				player_y_index++;
-			case MOVING_RIGHT:
-				player_x_index++;
-			case MOVING_LEFT:
-				player_x_index--;
-			default:
-				
-			}
-
-			if(grid[player_y_index][player_x_index] == BlockType.BORDER_BLOCK)
-			{
-				break; // Exit game
-			}
-
-			if(grid[player_y_index][player_x_index] == BlockType.FOOD_BLOCK)
-			{
-				score++;
-				grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
-				score_changed = true;
-			}
-
-			grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
-		}
-
+		apply_movement();
 
         rl::clearBackground(rl::BLACK);
 
