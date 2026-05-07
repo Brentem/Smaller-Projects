@@ -1,6 +1,9 @@
-module snake;
+module snake_game;
 import raylib5::rl;
 import std::math::random;
+import std::io;
+import types;
+import snake;
 
 const int BLOCK_WIDTH = 16;
 const int BLOCK_HEIGHT = 16;
@@ -11,51 +14,51 @@ const int BLOCK_COUNT_VERTICAL = 64;
 const int SCREEN_WIDTH = (BLOCK_WIDTH * BLOCK_COUNT_HORIZONTAL);
 const int SCREEN_HEIGHT = (BLOCK_HEIGHT * BLOCK_COUNT_VERTICAL);
 
-enum InputEvent
-{
-	NO_INPUT_EVENT,
-	INPUT_EVENT_KEY_RIGHT,
-	INPUT_EVENT_KEY_LEFT
-}
-
-enum MovementDirection
-{
-	MOVING_UP,
-	MOVING_DOWN,
-	MOVING_RIGHT,
-	MOVING_LEFT
-}
-
-enum BlockType
-{
-	NO_BLOCK,
-	PLAYER_HEAD_BLOCK,
-	PLAYER_BODY_BLOCK,
-	FOOD_BLOCK,
-	BORDER_BLOCK
-}
-
 // NOTE: See difference in declaring and accessing 2d array.
 BlockType[BLOCK_COUNT_HORIZONTAL][BLOCK_COUNT_VERTICAL] grid;
 
 double prev_time;
 double curr_time;
-int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
-int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
 
 int score = 0;
 bool score_changed = false;
 MovementDirection direction = MOVING_UP;
 bool quit_game = false;
 
+Snake snake;
+
 fn void initialize()
 {
     rl::initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
     rl::setTargetFPS(60);
 
-	grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
+	int player_x_index = (BLOCK_COUNT_HORIZONTAL / 2);
+	int player_y_index = (BLOCK_COUNT_VERTICAL / 2);
+	snake::initialize(&snake, player_x_index, player_y_index);
+
 	prev_time = rl::getTime();
 
+	set_border_blocks();
+
+	set_food_block();
+}
+
+fn void clear_blocks()
+{
+	for(int y = 0; y < BLOCK_COUNT_VERTICAL; y++)
+	{
+		for(int x = 0; x < BLOCK_COUNT_HORIZONTAL; x++)
+		{
+			if(grid[y][x] != FOOD_BLOCK)
+			{
+				grid[y][x] = NO_BLOCK;
+			}
+		}
+	}
+}
+
+fn void set_border_blocks()
+{
 	for(int i = 0; i < BLOCK_COUNT_VERTICAL; i++)
 	{
 		grid[i][0] = BORDER_BLOCK;
@@ -67,8 +70,6 @@ fn void initialize()
 		grid[0][i] = BORDER_BLOCK;
 		grid[(BLOCK_COUNT_VERTICAL - 1)][i] = BORDER_BLOCK;
 	}
-
-	set_food_block();
 }
 
 fn void set_food_block()
@@ -138,38 +139,39 @@ fn void apply_movement()
 	if((curr_time - prev_time) >= 0.2)
 	{
 		prev_time = curr_time;
-		grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
 
-		// TODO: Consider creating a state machine to handle different directions.
-		// TODO: Also check if index is valid.
-		// NOTE: C3 uses implicit break for switch statements.
-		switch(direction)
+		if(catch excuse = snake::move(&snake, direction))
 		{
-		case MOVING_UP:
-			player_y_index--;
-		case MOVING_DOWN:
-			player_y_index++;
-		case MOVING_RIGHT:
-			player_x_index++;
-		case MOVING_LEFT:
-			player_x_index--;
-		default:
-			// TODO: Error handling?
+			io::printfn("snake::add() gave an Excuse: %s", excuse);
 		}
+		SnakeBlock snake_head = snake.blocks[0];
 
-		if(grid[player_y_index][player_x_index] == BlockType.BORDER_BLOCK)
+		if((grid[snake_head.y_index][snake_head.x_index] == BlockType.BORDER_BLOCK) ||
+		(grid[snake_head.y_index][snake_head.x_index] == BlockType.PLAYER_BODY_BLOCK))
 		{
 			quit_game = true;
 		}
 
-		if(grid[player_y_index][player_x_index] == BlockType.FOOD_BLOCK)
+		if(grid[snake_head.y_index][snake_head.x_index] == BlockType.FOOD_BLOCK)
 		{
+			if(catch excuse = snake::add(&snake))
+			{
+				io::printfn("snake::add() gave an Excuse: %s", excuse);
+			}
+
 			score++;
-			grid[player_y_index][player_x_index] = BlockType.NO_BLOCK;
+			grid[snake_head.y_index][snake_head.x_index] = BlockType.NO_BLOCK;
 			score_changed = true;
 		}
 
-		grid[player_y_index][player_x_index] = BlockType.PLAYER_HEAD_BLOCK;
+		clear_blocks();
+		set_border_blocks();
+
+		for(int i = 0; i < snake.blocks.len(); i++)
+		{
+			SnakeBlock curr_block = snake.blocks[i];
+			grid[curr_block.y_index][curr_block.x_index] = curr_block.type;
+		}
 	}
 }
 
@@ -214,6 +216,12 @@ fn int main()
 					{
 						// Draw Player
 						rl::drawRectangle(posX, posY, BLOCK_WIDTH, BLOCK_HEIGHT, rl::GREEN); // Head of snake
+					}
+
+					if(grid[y][x] == BlockType.PLAYER_BODY_BLOCK)
+					{
+						// Draw Body of Player
+						rl::drawRectangle(posX, posY, BLOCK_WIDTH, BLOCK_HEIGHT, rl::LIME);
 					}
 
 					if(grid[y][x] == BlockType.BORDER_BLOCK)
