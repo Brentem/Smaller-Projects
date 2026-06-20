@@ -20,14 +20,13 @@ _start:
                            ; See rbx as a pointer that is dereferenced.
 
         cmp     cl, 0x40 ; Check the lowest byte in the rcx register if it contains a @ character (0x40).
-        je     printTestOne
+        call	printTestOne
 
         .exit:
         mov     rax, 60 ; exit
         mov     rdi, 0
         syscall
 
-; TODO: Jumping to this causes a segmentation fault, but the message does print.
 printTestOne:
         mov     rax, 1 ; write
         mov     rdi, 1 ; stdout
