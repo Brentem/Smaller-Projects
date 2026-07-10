@@ -14,34 +14,39 @@ test_msg3: db "987654321", 0
 ; TODO: Make variables underneath local to _start.
 char_arr:	db 	16 dup (0)
 char_arr_count:	dq 	0
+operand1:	dq	0
+operand2:	dq	0
+result:		dq	0
 
 section .text
         global _start
 
 _start:
-	pop	rax	; Get argc from stack
-	; cmp	rax, 3	; If argc != 3 go to exit
-	; jne	.exit
+	pop rax	; Get argc from stack
+	cmp rax, 3	; If argc != 3 go to exit
+	jne .exit
 
-	pop     rbx ; Get arg1 from stack. In our casse this is ./build/main
+	pop rbx ; Get arg1 from stack. In our casse this is ./build/main
 
 	; TODO: Implement arg handling.
-    pop     rbx ; Get arg2 from stack.
-	; pop	rcx ; Get arg3 from stack.
+	pop rbx; Get arg2 from stack.
+	pop rcx; Get arg3 from stack.
 
-	mov rdi, test_msg1
+	mov [operand1], rbx
+	mov [operand2], rcx
+
+	mov rdi, [operand1]
+	call convert_str_to_int
+	mov [result], rax
+
+	mov rdi, [operand2]
 	call convert_str_to_int
 
-	mov rdi, test_msg2
-	call convert_str_to_int
+	mov rbx, [result]
+	add rbx, rax
+	mov [result], rbx
 
-	mov rdi, test_msg3
-	call convert_str_to_int
-
-	mov rbx, 719
-	add rbx, 200
-
-	mov rdi, rbx
+	mov rdi, [result]
 	mov rsi, char_arr
 	mov rcx, char_arr_count
 	call convert_int_to_str
