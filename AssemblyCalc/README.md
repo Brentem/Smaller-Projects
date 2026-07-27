@@ -2,9 +2,6 @@
 
 Got Hello World example from this [repo](https://github.com/mschwartz/assembly-tutorial/tree/main).
 
-## TODO
-* Make documentation of convert_int_to_str and convert_str_to_int functions better.
-
 ## Sources used
 * [Linux System Call Table](https://www.chromium.org/chromium-os/developer-library/reference/linux-constants/syscalls/)
 * [FLAGS register](https://en.wikipedia.org/wiki/FLAGS_register)
