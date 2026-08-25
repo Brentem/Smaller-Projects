@@ -1,6 +1,7 @@
 ; rdi - Contains integer value that should be converted to string.
 ; rsi - Contains pointer to byte buffer where string will be placed.
 ; rcx - Contains pointer to variable where count of elements in buffer will be saved.
+; NOTE: Does not check the bounds of the character array!!!
 convert_int_to_str:
 	push rbx ; Function uses callee-save registers that should be saved.
 	mov rax, rdi ; Put rdi input in rax register as dividend.

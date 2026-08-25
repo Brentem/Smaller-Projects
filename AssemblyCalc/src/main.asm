@@ -5,9 +5,6 @@ bits 64
 %include "src/str_cmp.asm"
 
 section .data
-msg:    	db      "Correct input is given!", 10
-.len:   	equ     $ - msg
-
 add_msg:	db	"ADD", 0
 sub_msg:	db	"SUB", 0
 mul_msg:	db	"MUL", 0
@@ -27,7 +24,7 @@ section .text
 
 _start:
 	pop rax ; Get argc from stack
-	cmp rax, 4 ; If argc != 3 go to exit
+	cmp rax, 4 ; If argc != 4 go to exit
 	jne .exit
 
 	pop rbx ; Get arg1 from stack. In our casse this is ./build/main
@@ -131,16 +128,24 @@ _start:
 	mov rsi, char_arr
 	mov rcx, char_arr_count
 	call convert_int_to_str
-	; TODO: Add newline to char_arr.
 
-.print:
-        mov rax, 1 ; write
-        mov rdi, 1 ; stdout
-        mov rsi, char_arr
-        mov rdx, [rel char_arr_count]
-        syscall
+	; Print result with '\n' added to the end.
+	mov rdx, [rel char_arr_count]
+	mov [char_arr + rdx], 0x0A ; Line feed
+	inc rdx
+	mov [rel char_arr_count], rdx
+	call print
 
 .exit:
         mov rax, 60 ; exit
         mov rdi, 0
         syscall
+
+; Print function
+; rsi - Coints pointer to character array, which will be used in syscall.
+; rdx - Cointains amount of elements in array, which will be used in syscall.
+print:
+        mov rax, 1 ; write
+        mov rdi, 1 ; stdout
+        syscall
+	ret
